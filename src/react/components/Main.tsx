@@ -5,6 +5,7 @@ import "./style.css"
 type StateTypes =
     "IncorrectSite"
     | "Loading"
+    | "Extracting"
     | "Extract"
     | "Export";
 
@@ -18,7 +19,7 @@ export default function Main(){
     const [apiKey, setApiKey] = useState("");
 
     const extractLeads = async () => {
-        setState("Loading");
+        setState("Extracting");
         const tab = await getActiveTab();
         chrome.tabs.sendMessage(tab.id!, { action: "start_extraction", pages: pages });
     };
@@ -102,6 +103,10 @@ export default function Main(){
         } else if (state === "Loading") {
             return <>
                 <p style={{textAlign: "center", marginTop: "4rem"}}>Loading... <a style={{textAlign: "center", marginTop: "1rem"}} onClick={async () => await reloadPage()}>Reload</a></p>
+            </>
+        } else if (state === "Extracting") {
+            return <>
+                <p style={{textAlign: "center", marginTop: "4rem"}}>Extracting Leads... Don't close this window.</p>
             </>
         }
 
