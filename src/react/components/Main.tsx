@@ -10,6 +10,7 @@ type StateTypes =
 
 export default function Main(){
     const [leadsCount, setLeadsCount] = useState(0);
+    const [pages, setPages] = useState(0)
     const [state, setState] = useState<StateTypes>("IncorrectSite");
     const [tableHeaders, setTableHeaders] = useState<string[]>([]);
     const [tableData, setTableData] = useState<string[][]>([]);
@@ -19,15 +20,17 @@ export default function Main(){
     const extractLeads = async () => {
         setState("Loading");
         const tab = await getActiveTab();
-        chrome.tabs.sendMessage(tab.id! ,{ action: "start_extraction" }, (response) => {
-            setTableHeaders(response.tableHeaders);
-            setTableData(response.tableData);
-            setState("Export");
-        });
+        chrome.tabs.sendMessage(tab.id!, { action: "start_extraction", pages: pages });
     };
 
     useEffect(() => {
-        const messageListener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {};
+        const messageListener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+            if (message.action === "fetched_leads") {
+                setTableHeaders(message.data.tableHeaders);
+                setTableData(message.data.tableData);
+                setState("Export");
+            }
+        };
 
         chrome.runtime.onMessage.addListener(messageListener);
 
@@ -46,7 +49,8 @@ export default function Main(){
 
             setState("Loading");
             await chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
-                setLeadsCount(response.leadCount);
+                setLeadsCount(response.leadsCount);
+                setPages(Math.ceil(response.leadsCount / 25))
                 setState("Extract");
             });
         }
