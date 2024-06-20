@@ -54,12 +54,8 @@ export function downloadCsv(fileName: string, headers: string[], rows: string[][
 export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: string[][]) {
     const url = "https://app.closingdealz.io/api/v1/leads";
     try {
-        const reqData: string[] = rows.map((row) => {
-            const lead: any = { labels: ["Imported from Apollo"] };
-            headers.forEach((header, index) => {
-                lead[header] = row[index];
-            });
-            return lead;
+        const reqData: any[] = rows.map((row) => {
+            return mapToClosingDealz(headers, row);
         });
 
         const response = await fetch(url, {
@@ -83,6 +79,48 @@ export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: 
     } catch (error) {
         console.error(`An error occurred when adding leads to ClosingDealz CRM: ${error}`);
         return null;
+    }
+}
+
+function mapToClosingDealz(headers: string[], data: string[]): any {
+    const lead: any = { labels: ["Apollo"] };
+    const unmappedHeaders = [...Array(headers.length).keys()];
+
+    mapProperty("contactPerson", "Name");
+    mapProperty("jobTitle", "Title");
+    mapProperty("email", "Email");
+    mapProperty("company", "Company");
+    mapProperty("phoneNumber", "Phone");
+    mapProperty("address", "Contact Location");
+    mapProperty("employeeCount", "Employees", true);
+    mapProperty("industry", "Industry");
+
+    let notes = "";
+
+    unmappedHeaders.forEach(x => {
+        if (data[x] === "")
+            return;
+        notes += headers[x] + "\n";
+        notes += data[x] + "\n\n";
+    });
+
+    lead["notes"] = notes;
+    
+    return lead;
+
+    function mapProperty(propertyName: string, columnName: string, toNumber: boolean = false) {
+        const index = headers.indexOf(columnName)
+        if (index === -1)
+            return
+        if (toNumber) {
+            const value = Number(data[index]);
+            lead[propertyName] = value === 0 ? 1 : value;
+        } else {
+            lead[propertyName] = data[index];
+        }
+        const index2 = unmappedHeaders.indexOf(index);
+        unmappedHeaders.splice(index2, 1);
+        
     }
 }
 
