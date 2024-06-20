@@ -51,10 +51,10 @@ export function downloadCsv(fileName: string, headers: string[], rows: string[][
     }
 }
 
-export async function addLeads(apiKey: string, headers: string[], rows: string[][]) {
+export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: string[][]) {
     const url = "https://app.closingdealz.io/api/v1/leads";
     try {
-        const reqData: any[] = rows.map((row) => {
+        const reqData: string[] = rows.map((row) => {
             const lead: any = { labels: ["Imported from Apollo"] };
             headers.forEach((header, index) => {
                 lead[header] = row[index];
@@ -87,7 +87,5 @@ export async function addLeads(apiKey: string, headers: string[], rows: string[]
 }
 
 export async function reloadPage() {
-    const tab = await getActiveTab();
-    chrome.tabs.reload(tab.id!);
     location.reload();
 }

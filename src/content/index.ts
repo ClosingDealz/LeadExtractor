@@ -23,11 +23,27 @@ async function ensureElementLoaded (selectorQuery: Function) {
     return selectorQuery();
 };
 
-async function fetchAllTableData(): Promise<{ tableHeaders: string[]; tableData: any[][] }>  {
-    const tableHeaders: string[] = [];
-    const tableData: any[][] = [];
+async function fetchAllTableData(): Promise<{ tableHeaders: string[]; tableData: string[][] }>  {
+    let tableHeaders: string[] = [];
+    let tableData: string[][] = [];
 
     await getTableData(tableHeaders, tableData);
+
+    const indexToRemove = tableHeaders.indexOf("Quick Actions")
+    if (indexToRemove != -1) {
+        tableHeaders = tableHeaders.filter((x, i) => i != indexToRemove);
+        tableData = tableData.map((row) => row.filter((x, i) => i != indexToRemove));
+    }
+
+    replaceColumns(tableHeaders, tableData, "Name", (x) => x.replace("------", ""));
+    replaceColumns(tableHeaders, tableData, "Phone", (x) => x.replace("Request Mobile Number", ""));
+    replaceColumns(tableHeaders, tableData, "Company", (x) => x.replace("N/A", ""));
+    replaceColumns(tableHeaders, tableData, "# Employees", (x) => x.replace("N/A", ""));
+    replaceColumns(tableHeaders, tableData, "Industry", (x) => x.replace("N/A", ""));
+    replaceColumns(tableHeaders, tableData, "Keywords", (x) => x.replace("N/A", ""));
+    replaceColumns(tableHeaders, tableData, "Contact Owner", (x) => x.replace("N/A", ""));
+
+    replaceHeaderName(tableHeaders, "# Employees", "Employees");
 
     return {
         tableHeaders,
@@ -35,7 +51,7 @@ async function fetchAllTableData(): Promise<{ tableHeaders: string[]; tableData:
     };
 }
 
-async function getTableData(tableHeaders: string[], tableData: any[]) {
+async function getTableData(tableHeaders: string[], tableData: string[][]) {
     const table = await ensureElementLoaded(() => document.querySelector('.finder-results-list-panel-content table'));
 
     if (tableHeaders.length === 0)
@@ -53,4 +69,18 @@ function fetchTableData(table: Element): string[][]  {
     const mappedRows = rows.map(x => [...x.querySelectorAll('td')].map(y => y.textContent as string))
 
     return mappedRows;
+}
+
+function replaceColumns(tableHeaders: string[], tableData: string[][], columnName: string, replacement: (value: string) => string) {
+    const indexToFormat = tableHeaders.indexOf(columnName)
+    if (indexToFormat != -1) {
+        tableData.forEach(row =>  row[indexToFormat] = replacement(row[indexToFormat]));
+    }
+}
+
+function replaceHeaderName(tableHeaders: string[], columnName: string, replacement: string) {
+    const indexToFormat = tableHeaders.indexOf(columnName)
+    if (indexToFormat != -1) {
+        tableHeaders[indexToFormat] = replacement;
+    }
 }

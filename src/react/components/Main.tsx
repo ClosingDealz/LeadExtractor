@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
-import { addLeads, downloadCsv, getActiveTab, isCorrectUrl, reloadPage } from "../../utils";
+import { exportLeadsToCRM, downloadCsv, getActiveTab, isCorrectUrl, reloadPage } from "../../utils";
 import "./style.css"
 
 type StateTypes =
     "IncorrectSite"
     | "Loading"
-    | "CorrectSite"
+    | "Extract"
     | "Export";
 
 export default function Main(){
     const [leadsCount, setLeadsCount] = useState(0);
     const [state, setState] = useState<StateTypes>("IncorrectSite");
-    const [tableHeaders, setTableHeaders] = useState<any[]>([]);
-    const [tableData, setTableData] = useState<any[][]>([]);
+    const [tableHeaders, setTableHeaders] = useState<string[]>([]);
+    const [tableData, setTableData] = useState<string[][]>([]);
     const [fileName, setFileName] = useState("");
     const [apiKey, setApiKey] = useState("");
 
@@ -27,7 +27,7 @@ export default function Main(){
     };
 
     useEffect(() => {
-        const messageListener = (message: any, sender: any, sendResponse: any) => {};
+        const messageListener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {};
 
         chrome.runtime.onMessage.addListener(messageListener);
 
@@ -47,26 +47,26 @@ export default function Main(){
             setState("Loading");
             await chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
                 setLeadsCount(response.leadCount);
-                setState("CorrectSite");
+                setState("Extract");
             });
         }
         run();
     }, [])
     
-    function message(): any {
+    function message(): JSX.Element {
         if (state === "IncorrectSite") {
             return <>
                 <p style={{textAlign: "center", marginTop: "4rem"}}>Incorrect site. Please visit apollo's lead list page.</p>
             </>
-        } else if (state === "CorrectSite") {
+        } else if (state === "Extract") {
             return <>
-                <p style={{textAlign: "center", marginTop: "4rem"}}>You have extracted {leadsCount} leads</p>
-                <button className="filled" style={{marginTop: "1rem"}} onClick={extractLeads} disabled={leadsCount === 0}>Extract</button>
+                <p style={{textAlign: "center", marginTop: "4rem"}}>Found {leadsCount} leads</p>
+                <button className="filled" style={{marginTop: "1rem"}} onClick={extractLeads} disabled={leadsCount === 0}>Start Extract</button>
             </>
         } else if (state === "Export") {
             return <>
                 <div style={{display: "flex", flexDirection: "column", gap: 16, marginTop: "2rem", padding: "8px"}}>
-                    <h6>Export Leads</h6>
+                    <h6>Export <span style={{fontSize: "inherit", fontWeight: "inherit"}}>{tableData.length}</span> Leads</h6>
                     <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
                         <div className="input" data-has-value={fileName.length > 0}>
                             <label>File name</label>
@@ -79,10 +79,10 @@ export default function Main(){
                             <label>API key</label>
                             <input value={apiKey} onChange={e => setApiKey(e.target.value)} type="text" required data-underline />
                         </div>
-                        <button disabled={apiKey.length === 0} style={{margin: 0, flex: 1}} onClick={() => addLeads(apiKey, tableHeaders, tableData)} className="filled">ClosingDealz CRM</button>
+                        <button disabled={apiKey.length === 0} style={{margin: 0, flex: 1}} onClick={() => exportLeadsToCRM(apiKey, tableHeaders, tableData)} className="filled">ClosingDealz CRM</button>
                     </div>
                 </div>
-                <div style={{marginTop: "4rem", overflowX: "auto", height: "315px"}}>
+                <div style={{marginTop: "2rem", overflowX: "auto", height: "285px"}}>
                     <h6 style={{paddingLeft: "8px"}}>Preview</h6>
                     <table>
                         <thead>
@@ -100,6 +100,8 @@ export default function Main(){
                 <p style={{textAlign: "center", marginTop: "4rem"}}>Loading... <a style={{textAlign: "center", marginTop: "1rem"}} onClick={async () => await reloadPage()}>Reload</a></p>
             </>
         }
+
+        return <></>;
     }
 
     function displayTableRow(row: string[]) {
