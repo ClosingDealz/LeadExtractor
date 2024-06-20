@@ -1,23 +1,29 @@
 import { useState, useEffect } from "react";
-import { getActiveTab, isCorrectUrl } from "../../utils";
+import { addLeads, downloadCsv, getActiveTab, isCorrectUrl, reloadPage } from "../../utils";
+import "./style.css"
 
 type StateTypes =
     "IncorrectSite"
+    | "Loading"
     | "CorrectSite"
     | "Export";
 
 export default function Main(){
-    const [canExtract, setCanExtract] = useState(false);
     const [leadsCount, setLeadsCount] = useState(0);
     const [state, setState] = useState<StateTypes>("IncorrectSite");
+    const [tableHeaders, setTableHeaders] = useState<any[]>([]);
+    const [tableData, setTableData] = useState<any[][]>([]);
+    const [fileName, setFileName] = useState("");
+    const [apiKey, setApiKey] = useState("");
 
-    const extractLeads = () => {
-        // chrome.runtime.sendMessage({ action: "start_extraction" }, (response) => {
-        //     if (response && response.totalLeads && response.pages) {
-                
-        //     }
-        // });
-        setState("Export");
+    const extractLeads = async () => {
+        setState("Loading");
+        const tab = await getActiveTab();
+        chrome.tabs.sendMessage(tab.id! ,{ action: "start_extraction" }, (response) => {
+            setTableHeaders(response.tableHeaders);
+            setTableData(response.tableData);
+            setState("Export");
+        });
     };
 
     useEffect(() => {
@@ -38,10 +44,10 @@ export default function Main(){
                 return;
             }
 
-            setState("CorrectSite");
+            setState("Loading");
             await chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
                 setLeadsCount(response.leadCount);
-                setCanExtract(true);
+                setState("CorrectSite");
             });
         }
         run();
@@ -50,29 +56,71 @@ export default function Main(){
     function message(): any {
         if (state === "IncorrectSite") {
             return <>
-                <p>Incorrect site. Please visit apollo's lead list page.</p>
-                <button disabled>Extract</button>
+                <p style={{textAlign: "center", marginTop: "4rem"}}>Incorrect site. Please visit apollo's lead list page.</p>
             </>
         } else if (state === "CorrectSite") {
             return <>
-                <p>You have extracted {leadsCount} leads</p>
-                <button onClick={extractLeads} disabled={!canExtract}>Extract</button>
+                <p style={{textAlign: "center", marginTop: "4rem"}}>You have extracted {leadsCount} leads</p>
+                <button className="filled" style={{marginTop: "1rem"}} onClick={extractLeads} disabled={leadsCount === 0}>Extract</button>
             </>
         } else if (state === "Export") {
             return <>
-                <p>Export {leadsCount} leads</p>
-                <div style={{display: "flex", flexDirection: "column", gap: 16}}>
-                    <button>Export to Excel</button>
-                    <button>Export to CSV</button>
-                    <button>Export to ClosingDealz CRM</button>
+                <div style={{display: "flex", flexDirection: "column", gap: 16, marginTop: "2rem", padding: "8px"}}>
+                    <h6>Export Leads</h6>
+                    <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
+                        <input value={fileName} onChange={e => setFileName(e.target.value)} type="text" placeholder="File name" required />
+                        <button disabled={fileName.length === 0} className="filled" style={{margin: 0, width: "-webkit-fill-available"}} onClick={() => downloadCsv(fileName, tableHeaders, tableData)}>CSV</button>
+                    </div>
+                    <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
+                        <input value={apiKey} onChange={e => setApiKey(e.target.value)} type="text" placeholder="API key" required />
+                        <button disabled={apiKey.length === 0} style={{margin: 0, width: "-webkit-fill-available"}} onClick={() => addLeads(tableHeaders, tableData)} className="filled">ClosingDealz CRM</button>
+                    </div>
                 </div>
+                <div style={{marginTop: "4rem", overflowX: "auto", height: "315px"}}>
+                    <h6 style={{paddingLeft: "8px"}}>Preview</h6>
+                    <table>
+                        <thead>
+                            {displayTableHeaders(tableHeaders)}
+                        </thead>
+                        <tbody>
+                            {tableData.map((x) => displayTableRow(x))}
+                        </tbody>
+                    </table>
+                </div>
+                
+            </>
+        } else if (state === "Loading") {
+            return <>
+                <p style={{textAlign: "center", marginTop: "4rem"}}>Loading... <a style={{textAlign: "center", marginTop: "1rem"}} onClick={async () => await reloadPage()}>Reload</a></p>
             </>
         }
     }
 
+    function displayTableRow(row: string[]) {
+        return (
+            <tr>
+                {row.map((x) => (
+                    <td>{x}</td>
+                ))}
+            </tr>
+        );
+    }
+
+    function displayTableHeaders(header: string[]) {
+        return (
+            <tr>
+                {header.map((x) => (
+                    <th>{x}</th>
+                ))}
+            </tr>
+        );
+    }
+
     return (
         <main style={{width: 500, height: 300}}>
-            <h1>Lead Extractor</h1>
+            <header>
+                <h1>Lead Extractor</h1>
+            </header>
             {message()}
         </main>
     );

@@ -23,6 +23,10 @@ module.exports = {
       patterns: [{
         from: path.resolve('manifest.json'),
         to: path.resolve('dist')
+      },
+      {
+        from: path.resolve(__dirname, 'src/assets'),
+        to: path.resolve(__dirname, 'dist/assets')
       }]
     })
   ],
@@ -41,7 +45,12 @@ module.exports = {
             ]
           }
         }
-      }
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+        exclude: /node_modules/,
+      },
     ]
   },
   resolve: {
