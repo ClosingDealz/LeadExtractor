@@ -85,11 +85,47 @@ button:focus {
     box-shadow: rgba(50, 50, 93, .1) 0 0 0 1px inset, rgba(50, 50, 93, .2) 0 6px 15px 0, rgba(0, 0, 0, .1) 0 2px 2px 0, rgba(50, 151, 211, .3) 0 0 0 4px;
 }
 
-input {
-    outline: 1px solid black;
-    border-radius: 2px;
-    height: 30px;
+.input {
+    position: relative;
+    flex: 1;
+}
+
+.input input {
     width: 100%;
+    color: black;
+    background-color: transparent;
+    outline: none;
+    border: none;
+    padding-block: 0.25rem;
+    margin-top: 1rem;
+    font-size: 1rem;
+}
+
+.input input[data-underline] {
+    border-bottom: 1px solid rgb(189, 189, 189);
+}
+
+.input input:focus-within {
+    border-bottom-color: #fdba25;
+}
+
+.input:has(input:focus-within) label {
+    color: #fdba25;
+}
+
+.input:has(input:focus-within) label, .input[data-has-value=true] label {
+    top: 0;
+    font-size: 0.7rem;
+}
+
+.input label {
+    position: absolute;
+    left: 0;
+    top: 1rem;
+    color: rgb(29, 29, 29);
+    transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
+    user-select: none;
+    pointer-events: none;
 }
 
 table {

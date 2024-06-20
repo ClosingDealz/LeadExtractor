@@ -51,7 +51,7 @@ export function downloadCsv(fileName: string, headers: string[], rows: string[][
     }
 }
 
-export async function addLeads(headers: string[], rows: string[][]) {
+export async function addLeads(apiKey: string, headers: string[], rows: string[][]) {
     const url = "https://app.closingdealz.io/api/v1/leads";
     try {
         const reqData: any[] = rows.map((row) => {
@@ -65,8 +65,8 @@ export async function addLeads(headers: string[], rows: string[][]) {
         const response = await fetch(url, {
             method: "post",
             headers: {
-            "X-API-Key": "your-api-key",
-            "Content-Type": "application/json",
+                "X-API-Key": apiKey,
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(reqData)
         });

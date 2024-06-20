@@ -68,12 +68,18 @@ export default function Main(){
                 <div style={{display: "flex", flexDirection: "column", gap: 16, marginTop: "2rem", padding: "8px"}}>
                     <h6>Export Leads</h6>
                     <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
-                        <input value={fileName} onChange={e => setFileName(e.target.value)} type="text" placeholder="File name" required />
-                        <button disabled={fileName.length === 0} className="filled" style={{margin: 0, width: "-webkit-fill-available"}} onClick={() => downloadCsv(fileName, tableHeaders, tableData)}>CSV</button>
+                        <div className="input" data-has-value={fileName.length > 0}>
+                            <label>File name</label>
+                            <input value={fileName} onChange={e => setFileName(e.target.value)} type="text" required data-underline />
+                        </div>
+                        <button disabled={fileName.length === 0} className="filled" style={{margin: 0, flex: 1}} onClick={() => downloadCsv(fileName, tableHeaders, tableData)}>CSV</button>
                     </div>
                     <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
-                        <input value={apiKey} onChange={e => setApiKey(e.target.value)} type="text" placeholder="API key" required />
-                        <button disabled={apiKey.length === 0} style={{margin: 0, width: "-webkit-fill-available"}} onClick={() => addLeads(tableHeaders, tableData)} className="filled">ClosingDealz CRM</button>
+                        <div className="input" data-has-value={apiKey.length > 0}>
+                            <label>API key</label>
+                            <input value={apiKey} onChange={e => setApiKey(e.target.value)} type="text" required data-underline />
+                        </div>
+                        <button disabled={apiKey.length === 0} style={{margin: 0, flex: 1}} onClick={() => addLeads(apiKey, tableHeaders, tableData)} className="filled">ClosingDealz CRM</button>
                     </div>
                 </div>
                 <div style={{marginTop: "4rem", overflowX: "auto", height: "315px"}}>
