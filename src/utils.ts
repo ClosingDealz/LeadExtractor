@@ -94,6 +94,10 @@ function mapToClosingDealz(headers: string[], data: string[]): any {
     mapProperty("address", "Contact Location");
     mapProperty("employeeCount", "Employees", true);
     mapProperty("industry", "Industry");
+    mapProperty("website", "Website");
+    mapProperty("linkedIn", "LinkedIn");
+    mapProperty("twitter", "Twitter");
+    mapProperty("facebook", "Facebook");
 
     let notes = "";
 

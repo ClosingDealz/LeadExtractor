@@ -84,18 +84,49 @@ async function getTableData(tableHeaders: string[], tableData: string[][], shoul
     if (tableHeaders.length === 0)
         tableHeaders.push(...fetchTableHeaders(table));
 
-    tableData.push(...fetchTableData(table));
+    tableData.push(...fetchTableData(table, tableHeaders));
 }
 
 function fetchTableHeaders(table: Element): string[]  {
-    return [...table.querySelectorAll("thead tr th")].map(x => x.textContent as string);
+    const headers = [...table.querySelectorAll("thead tr th")].map(x => x.textContent as string);
+    return [...headers, "Website", "LinkedIn", "Twitter", "Facebook"];
 }
 
-function fetchTableData(table: Element): string[][]  {
+function fetchTableData(table: Element, headers: string[]): string[][]  {
     const rows = [...table.querySelectorAll("tbody tr")];
-    const mappedRows = rows.map(x => [...x.querySelectorAll('td')].map(y => y.textContent as string))
+    const companyIndex = headers.indexOf("Company");
+    const mappedRows = rows.map(mapRow)
 
     return mappedRows;
+
+    function mapRow(row: Element): string[] {
+        const columns = [...row.querySelectorAll('td')];
+        const mappedColumns = columns.map(x => x.textContent as string);
+        const company = columns[companyIndex];
+        const allLinks = [...company.querySelectorAll("a.zp-link")].map(x => (x as HTMLLinkElement).href);
+
+        const linkedin = getLink(allLinks, ["https://linkedin.com", "http://linkedin.com"]);
+        const twitter = getLink(allLinks, ["https://twitter.com", "http://twitter.com", "https://x.com", "http://x.com"]);
+        const facebook = getLink(allLinks, ["https://facebook.com", "http://facebook.com"]);
+        const website = allLinks.length === 0 ? "" : allLinks[0];
+
+        return [...mappedColumns, website, linkedin, twitter, facebook];
+    }
+
+    function getLink(allLinks: string[], urls: string[]): string {
+        for (const url of urls) {
+            const index = allLinks.findIndex((x) => x.startsWith(url));
+
+            if (index === -1)
+                continue;
+
+            const link = allLinks[index];
+            allLinks.splice(index, 1);
+
+            return link;
+        }
+        return "";
+    }
 }
 
 function replaceColumns(tableHeaders: string[], tableData: string[][], columnName: string, replacement: (value: string) => string) {
