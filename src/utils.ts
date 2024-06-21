@@ -54,31 +54,35 @@ export function downloadCsv(fileName: string, headers: string[], rows: string[][
 export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: string[][]) {
     const url = "https://app.closingdealz.io/api/v1/leads";
     try {
-        const reqData: any[] = rows.map((row) => {
+        const leads: any[] = rows.map((row) => {
             return mapToClosingDealz(headers, row);
         });
 
-        const response = await fetch(url, {
-            method: "post",
-            headers: {
-                "X-API-Key": apiKey,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(reqData)
-        });
+        const responses: any[] = [];
 
-        const resData = await response.json();
-    
-        if (resData.succeeded) {
-            console.log("Leads successfully added to ClosingDealz CRM.");
-        } else {
-            console.log(`Failed to add leads to ClosingDealz CRM. Message: ${resData.message}`);
+        for (const leadChunk of chunk(leads, 100)) {
+            const response = await fetch(url, {
+                method: "post",
+                headers: {
+                    "X-API-Key": apiKey,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(leadChunk)
+            });
+            const resData = await response.json();
+            responses.push(resData);
         }
         
+        return responses.every(x => x.succeeded === true)
+            ? [true, "Leads successfully added to ClosingDealz CRM"]
+            : [false, "Failed to add leads to ClosingDealz CRM"];
+        
+        
+        return resData.data;
+
         return resData.data;
     } catch (error) {
-        console.error(`An error occurred when adding leads to ClosingDealz CRM: ${error}`);
-        return null;
+        return [false, `An error occurred when adding leads to ClosingDealz CRM: ${error}`];
     }
 }
 
@@ -126,6 +130,16 @@ function mapToClosingDealz(headers: string[], data: string[]): any {
         unmappedHeaders.splice(index2, 1);
         
     }
+}
+
+function chunk<T>(list: T[], chunkSize: number): T[][] {
+    const chunksArray: T[][] = [];
+    for (let i = 0; i < list.length; i += chunkSize) {
+        const chunk = list.slice(i, i + chunkSize);
+        chunksArray.push(chunk);
+    }
+
+    return chunksArray;
 }
 
 export async function reloadPage() {

@@ -141,3 +141,16 @@ th, td {
 tr:nth-child(even) {
     background-color: #eeead6;
 }
+
+.alert {
+    padding: 0.5rem 0.75rem !important;
+    background-color: rgb(228 235 227) !important;
+    border-left: 4px solid rgb(34, 180, 34) !important;
+    border-radius: 4px !important;
+    color: black !important;
+}
+
+.alert.alert-error {
+    border-left-color: red !important;
+    background-color: rgb(235 227 227) !important;
+}

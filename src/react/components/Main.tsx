@@ -17,11 +17,25 @@ export default function Main(){
     const [tableData, setTableData] = useState<string[][]>([]);
     const [fileName, setFileName] = useState("");
     const [apiKey, setApiKey] = useState("");
+    const [uploadingLeads, setUploadingLeads] = useState(false);
+    const [sentLeadsToCrmMessage, setSentLeadsToCrmMessage] = useState<JSX.Element>();
 
     const extractLeads = async () => {
         setState("Extracting");
         const tab = await getActiveTab();
         chrome.tabs.sendMessage(tab.id!, { action: "start_extraction", pages: pages });
+    };
+
+    const sendLeadsToCRM = async () => {
+        setUploadingLeads(true);
+        const [success, message] = await exportLeadsToCRM(apiKey, tableHeaders, tableData);
+        setUploadingLeads(false);
+
+        if (success)
+            setSentLeadsToCrmMessage(<div className="alert">{message}</div>)
+        else {
+            setSentLeadsToCrmMessage(<div className="alert alert-error">{message}</div>)
+        }
     };
 
     useEffect(() => {
@@ -84,8 +98,9 @@ export default function Main(){
                             <label>API key</label>
                             <input value={apiKey} onChange={e => setApiKey(e.target.value)} type="text" required data-underline />
                         </div>
-                        <button disabled={apiKey.length === 0} style={{margin: 0, flex: 1}} onClick={() => exportLeadsToCRM(apiKey, tableHeaders, tableData)} className="filled">ClosingDealz CRM</button>
+                        <button disabled={apiKey.length === 0 || uploadingLeads} style={{margin: 0, flex: 1}} onClick={sendLeadsToCRM} className="filled">ClosingDealz CRM</button>
                     </div>
+                    {sentLeadsToCrmMessage}
                 </div>
                 <div style={{marginTop: "2rem", overflowX: "auto", height: "285px"}}>
                     <h6 style={{paddingLeft: "8px"}}>Preview</h6>
