@@ -9,15 +9,20 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
 });
 
-async function getLeadPageInfo(): Promise<{ pageSize: number; leadsCount: number }> {
+async function getLeadPageInfo(): Promise<{ remainingPages: number; leadsCount: number }> {
     const panel = await ensureElementLoaded(() => [...document.getElementsByClassName('finder-results-list-panel-content')].find(_ => true)!);
-    const regex = /\d+ - (\d+) of (\d+)/;
+    const regex = /(\d+) - (\d+) of (\d+)/;
     const match = panel.innerHTML.match(regex)!;
 
-    const pageSize = Number(match[1]);
-    const leadsCount = Number(match[2]);
+    const leadsStart = Number(match[1]);
+    const leadsEnd = Number(match[2]);
+    const totalLeads = Number(match[3]);
 
-    return {pageSize, leadsCount};
+    const pageSize = leadsEnd - leadsStart + 1;
+    const leadsCount = totalLeads - leadsStart + 1;
+    const remainingPages = Math.ceil(leadsCount / pageSize);
+
+    return {remainingPages, leadsCount};
 }
 
 async function ensureElementLoaded(selectorQuery: () => Element): Promise<Element> {
@@ -32,12 +37,16 @@ async function fetchAllTableData(pages: number): Promise<{ tableHeaders: string[
     let tableHeaders: string[] = [];
     let tableData: string[][] = [];
 
-    for (let index = 0; index < pages; index++) {
-        await appendTableData(tableHeaders, tableData, index != 0);
+    for (let i = 0; i < pages; i++) {
+        await appendTableData(tableHeaders, tableData, i != 0);
 
-        if (index != pages -1) {
+        if (i != pages - 1) {
             const button = document.querySelector("button[aria-label='right-arrow']") as HTMLButtonElement;
+            if (button.disabled)
+                break;
+
             button.click();
+            await new Promise(res => setTimeout(res, 1000));
         }
     }
 
@@ -109,7 +118,7 @@ function getTableData(table: Element, headers: string[]): string[][]  {
     function mapRow(row: Element): string[] {
         const columns = [...row.querySelectorAll('td')];
         const mappedColumns = columns.map(x => x.textContent as string);
-        
+
         const company = columns[companyIndex];
         const allLinks = [...company.querySelectorAll("a.zp-link")].map(x => (x as HTMLLinkElement).href);
 

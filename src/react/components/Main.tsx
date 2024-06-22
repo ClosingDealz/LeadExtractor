@@ -67,7 +67,7 @@ export default function Main(){
             setState("Loading");
             chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
                 setLeadsCount(response.leadsCount);
-                setPages(Math.ceil(response.leadsCount / 25))
+                setPages(response.remainingPages)
                 setState("Extract");
             });
         }
