@@ -1,6 +1,6 @@
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (message.action === "fetch_lead_info") {
-        const leadInfo = await getLeadInfo();
+        const leadInfo = await getLeadPageInfo();
         sendResponse(leadInfo);
     }
     else if (message.action === "start_extraction") {
@@ -9,20 +9,22 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
 });
 
-async function getLeadInfo(): Promise<{ pageSize: number; leadsCount: number }> {
-    const panel = await ensureElementLoaded(() => [...document.getElementsByClassName('finder-results-list-panel-content')].find(_ => true));
+async function getLeadPageInfo(): Promise<{ pageSize: number; leadsCount: number }> {
+    const panel = await ensureElementLoaded(() => [...document.getElementsByClassName('finder-results-list-panel-content')].find(_ => true)!);
     const regex = /\d+ - (\d+) of (\d+)/;
     const match = panel.innerHTML.match(regex)!;
+
     const pageSize = Number(match[1]);
     const leadsCount = Number(match[2]);
 
     return {pageSize, leadsCount};
 }
 
-async function ensureElementLoaded (selectorQuery: Function) {
+async function ensureElementLoaded(selectorQuery: () => Element): Promise<Element> {
     while (!selectorQuery()) {
         await new Promise(resolve => requestAnimationFrame(resolve) )
     }
+
     return selectorQuery();
 };
 
@@ -31,18 +33,22 @@ async function fetchAllTableData(pages: number): Promise<{ tableHeaders: string[
     let tableData: string[][] = [];
 
     for (let index = 0; index < pages; index++) {
-        await getTableData(tableHeaders, tableData, index != 0);
+        await appendTableData(tableHeaders, tableData, index != 0);
+
         if (index != pages -1) {
             const button = document.querySelector("button[aria-label='right-arrow']") as HTMLButtonElement;
             button.click();
         }
     }
+
+    // Remove Quick Actions header
     const indexToRemove = tableHeaders.indexOf("Quick Actions")
     if (indexToRemove != -1) {
         tableHeaders = tableHeaders.filter((x, i) => i != indexToRemove);
         tableData = tableData.map((row) => row.filter((x, i) => i != indexToRemove));
     }
 
+    // Format column data
     replaceColumns(tableHeaders, tableData, "Name", (x) => x.replace("------", ""));
     replaceColumns(tableHeaders, tableData, "Title", (x) => x.replace("N/A", ""));
     replaceColumns(tableHeaders, tableData, "Phone", (x) => x.replace("Request Mobile Number", ""));
@@ -60,9 +66,10 @@ async function fetchAllTableData(pages: number): Promise<{ tableHeaders: string[
     };
 }
 
-async function getTableData(tableHeaders: string[], tableData: string[][], shouldWait: boolean) {
-    const table = await ensureElementLoaded(() => document.querySelector('.finder-results-list-panel-content table'));
+async function appendTableData(tableHeaders: string[], tableData: string[][], shouldWait: boolean) {
+    const table = await ensureElementLoaded(() => document.querySelector('.finder-results-list-panel-content table')!);
     
+    // Ensure table content is loaded
     if (shouldWait) {
         let resolvePromise: (value: unknown) => void;
     
@@ -82,17 +89,17 @@ async function getTableData(tableHeaders: string[], tableData: string[][], shoul
     }
 
     if (tableHeaders.length === 0)
-        tableHeaders.push(...fetchTableHeaders(table));
+        tableHeaders.push(...getTableHeaders(table));
 
-    tableData.push(...fetchTableData(table, tableHeaders));
+    tableData.push(...getTableData(table, tableHeaders));
 }
 
-function fetchTableHeaders(table: Element): string[]  {
+function getTableHeaders(table: Element): string[]  {
     const headers = [...table.querySelectorAll("thead tr th")].map(x => x.textContent as string);
     return [...headers, "Website", "LinkedIn", "Twitter", "Facebook"];
 }
 
-function fetchTableData(table: Element, headers: string[]): string[][]  {
+function getTableData(table: Element, headers: string[]): string[][]  {
     const rows = [...table.querySelectorAll("tbody tr")];
     const companyIndex = headers.indexOf("Company");
     const mappedRows = rows.map(mapRow)
@@ -102,6 +109,7 @@ function fetchTableData(table: Element, headers: string[]): string[][]  {
     function mapRow(row: Element): string[] {
         const columns = [...row.querySelectorAll('td')];
         const mappedColumns = columns.map(x => x.textContent as string);
+        
         const company = columns[companyIndex];
         const allLinks = [...company.querySelectorAll("a.zp-link")].map(x => (x as HTMLLinkElement).href);
 
@@ -113,10 +121,9 @@ function fetchTableData(table: Element, headers: string[]): string[][]  {
         return [...mappedColumns, website, linkedin, twitter, facebook];
     }
 
-    function getLink(allLinks: string[], urls: string[]): string {
-        for (const url of urls) {
+    function getLink(allLinks: string[], queryUrls: string[]): string {
+        for (const url of queryUrls) {
             const index = allLinks.findIndex((x) => x.startsWith(url));
-
             if (index === -1)
                 continue;
 

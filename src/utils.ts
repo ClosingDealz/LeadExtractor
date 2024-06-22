@@ -7,7 +7,7 @@ export async function getActiveTab(): Promise<chrome.tabs.Tab> {
     return tabs[0];
 }
 
-export function isCorrectUrl(url: string): boolean {
+export function isApolloListUrl(url: string): boolean {
     if (!url || !url.includes("https://app.apollo.io/#/people"))
         return false;
 
@@ -24,30 +24,30 @@ export function isCorrectUrl(url: string): boolean {
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
-    let temp_link = document.createElement('a');
+    let tempLink = document.createElement('a');
 
-    temp_link.download = fileName;
+    tempLink.download = fileName;
     let url = window.URL.createObjectURL(blob);
-    temp_link.href = url;
+    tempLink.href = url;
  
-    temp_link.style.display = "none";
-    document.body.appendChild(temp_link);
+    tempLink.style.display = "none";
+    document.body.appendChild(tempLink);
 
-    temp_link.click();
-    document.body.removeChild(temp_link);
+    tempLink.click();
+    document.body.removeChild(tempLink);
 }
 
 export function downloadCsv(fileName: string, headers: string[], rows: string[][]) {
-    const header = headers.map(x => serializeCell(x)).join(", ");
-    const data = rows.map(row => row.map(x => serializeCell(x)).join(", ")).join("\n");
+    const headerStr = headers.map(x => serializeCell(x)).join(", ");
+    const dataStr = rows.map(row => row.map(x => serializeCell(x)).join(", ")).join("\n");
 
-    const csvData = header + "\n" + data;
+    const csvData = headerStr + "\n" + dataStr;
     const csvFile = new Blob([csvData], { type: "text/csv" });
 
     downloadBlob(csvFile, fileName + ".csv");
 
     function serializeCell(cell: string) {
-        return "\"" + cell.trim().replace("\"", "\"\"") + "\"";
+        return "\"" + cell.trim().replace("\"", "\"\"") + "\""; // A " quote => "A "" quote"
     }
 }
 
@@ -59,7 +59,6 @@ export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: 
         });
 
         const responses: any[] = [];
-
         for (const leadChunk of chunk(leads, 100)) {
             const response = await fetch(url, {
                 method: "post",
@@ -69,6 +68,7 @@ export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: 
                 },
                 body: JSON.stringify(leadChunk)
             });
+
             const resData = await response.json();
             responses.push(resData);
         }
@@ -76,11 +76,7 @@ export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: 
         return responses.every(x => x.succeeded === true)
             ? [true, "Leads successfully added to ClosingDealz CRM"]
             : [false, "Failed to add leads to ClosingDealz CRM"];
-        
-        
-        return resData.data;
 
-        return resData.data;
     } catch (error) {
         return [false, `An error occurred when adding leads to ClosingDealz CRM: ${error}`];
     }
@@ -90,6 +86,7 @@ function mapToClosingDealz(headers: string[], data: string[]): any {
     const lead: any = { labels: ["Apollo"] };
     const unmappedHeaders = [...Array(headers.length).keys()];
 
+    // Remap known properties
     mapProperty("contactPerson", "Name");
     mapProperty("jobTitle", "Title");
     mapProperty("email", "Email");
@@ -103,15 +100,14 @@ function mapToClosingDealz(headers: string[], data: string[]): any {
     mapProperty("twitter", "Twitter");
     mapProperty("facebook", "Facebook");
 
+    // Map rest of the headers to notes
     let notes = "";
-
     unmappedHeaders.forEach(x => {
         if (data[x] === "")
             return;
         notes += headers[x] + "\n";
         notes += data[x] + "\n\n";
     });
-
     lead["notes"] = notes;
     
     return lead;
@@ -120,12 +116,14 @@ function mapToClosingDealz(headers: string[], data: string[]): any {
         const index = headers.indexOf(columnName)
         if (index === -1)
             return
+
         if (toNumber) {
             const value = Number(data[index]);
             lead[propertyName] = value === 0 ? 1 : value;
         } else {
             lead[propertyName] = data[index];
         }
+
         const index2 = unmappedHeaders.indexOf(index);
         unmappedHeaders.splice(index2, 1);
         

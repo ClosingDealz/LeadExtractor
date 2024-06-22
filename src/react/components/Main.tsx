@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { exportLeadsToCRM, downloadCsv, getActiveTab, isCorrectUrl, reloadPage } from "../../utils";
+import { exportLeadsToCRM, downloadCsv, getActiveTab, isApolloListUrl, reloadPage } from "../../utils";
 import "./style.css"
 
 type StateTypes =
     "IncorrectSite"
     | "Loading"
-    | "Extracting"
     | "Extract"
+    | "Extracting"
     | "Export";
 
 export default function Main(){
@@ -38,6 +38,7 @@ export default function Main(){
         }
     };
 
+    // Chrome message listener
     useEffect(() => {
         const messageListener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
             if (message.action === "fetched_leads") {
@@ -54,21 +55,23 @@ export default function Main(){
         };
     }, []);
 
+    // Startup
     useEffect(() => {
         async function run() {
             const tab = await getActiveTab();
-            if (!isCorrectUrl(tab.url!)) {
+            if (!isApolloListUrl(tab.url!)) {
                 setState("IncorrectSite");
                 return;
             }
 
             setState("Loading");
-            await chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
+            chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
                 setLeadsCount(response.leadsCount);
                 setPages(Math.ceil(response.leadsCount / 25))
                 setState("Extract");
             });
         }
+
         run();
     }, [])
     
@@ -80,7 +83,7 @@ export default function Main(){
         } else if (state === "Extract") {
             return <>
                 <p style={{textAlign: "center", marginTop: "4rem"}}>Found {leadsCount} leads</p>
-                <button className="filled" style={{marginTop: "1rem"}} onClick={extractLeads} disabled={leadsCount === 0}>Start Extract</button>
+                <button className="filled" style={{marginTop: "1rem"}} onClick={extractLeads} disabled={leadsCount === 0}>Extract</button>
             </>
         } else if (state === "Export") {
             return <>
@@ -88,14 +91,14 @@ export default function Main(){
                     <h6>Export <span style={{fontSize: "inherit", fontWeight: "inherit"}}>{tableData.length}</span> Leads</h6>
                     <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
                         <div className="input" data-has-value={fileName.length > 0}>
-                            <label>File name</label>
+                            <label>File Name</label>
                             <input value={fileName} onChange={e => setFileName(e.target.value)} type="text" required data-underline />
                         </div>
                         <button disabled={fileName.length === 0} className="filled" style={{margin: 0, flex: 1}} onClick={() => downloadCsv(fileName, tableHeaders, tableData)}>CSV</button>
                     </div>
                     <div style={{display: "flex", gap: 8, justifyContent: "start", alignItems: "center"}}>
                         <div className="input" data-has-value={apiKey.length > 0}>
-                            <label>API key</label>
+                            <label>API Key</label>
                             <input value={apiKey} onChange={e => setApiKey(e.target.value)} type="text" required data-underline />
                         </div>
                         <button disabled={apiKey.length === 0 || uploadingLeads} style={{margin: 0, flex: 1}} onClick={sendLeadsToCRM} className="filled">ClosingDealz CRM</button>
@@ -113,7 +116,6 @@ export default function Main(){
                         </tbody>
                     </table>
                 </div>
-                
             </>
         } else if (state === "Loading") {
             return <>
@@ -153,10 +155,8 @@ export default function Main(){
             <header>
                 <h1>Lead Extractor</h1>
             </header>
+
             {message()}
         </main>
     );
 }
-
-
-
