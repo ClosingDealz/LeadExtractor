@@ -11,7 +11,8 @@ type StateTypes =
 
 export default function Main(){
     const [leadsCount, setLeadsCount] = useState(0);
-    const [pages, setPages] = useState(0)
+    const [maxPages, setMaxPages] = useState(0);
+    const [pages, setPages] = useState(0);
     const [state, setState] = useState<StateTypes>("IncorrectSite");
     const [tableHeaders, setTableHeaders] = useState<string[]>([]);
     const [tableData, setTableData] = useState<string[][]>([]);
@@ -23,7 +24,7 @@ export default function Main(){
     const extractLeads = async () => {
         setState("Extracting");
         const tab = await getActiveTab();
-        chrome.tabs.sendMessage(tab.id!, { action: "start_extraction", pages: pages });
+        chrome.tabs.sendMessage(tab.id!, { action: "start_extraction", pages: Math.max(Math.min(maxPages, pages), 1) });
     };
 
     const sendLeadsToCRM = async () => {
@@ -68,6 +69,7 @@ export default function Main(){
             chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
                 setLeadsCount(response.leadsCount);
                 setPages(response.remainingPages)
+                setMaxPages(response.remainingPages)
                 setState("Extract");
             });
         }
@@ -82,8 +84,14 @@ export default function Main(){
             </>
         } else if (state === "Extract") {
             return <>
-                <p style={{textAlign: "center", marginTop: "4rem"}}>Found {leadsCount} leads</p>
-                <button className="filled" style={{marginTop: "1rem"}} onClick={extractLeads} disabled={leadsCount === 0}>Extract</button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: "2rem", padding: 8}}>
+                <h6>Found {leadsCount} leads</h6>
+                <div className="input" data-has-value="true">
+                    <label>Pages to Extract</label>
+                    <input type="number" min="1" max={maxPages} value={pages} onChange={e => setPages(Number(e.target.value))} data-underline />
+                </div>
+                <button className="filled" style={{marginTop: "1rem", width: "100%"}} onClick={extractLeads} disabled={leadsCount === 0}>Extract</button>
+            </div>
             </>
         } else if (state === "Export") {
             return <>
