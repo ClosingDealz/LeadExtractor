@@ -29,7 +29,7 @@
             
             const title = lead.getElementsByClassName('fontHeadlineSmall')[0].textContent ?? "";
             const starsSection = lead.querySelector('.fontBodyMedium [role="img"]')?.getAttribute("aria-label");
-            const starsRegex = /(\d+\.?\d?) stars (\d+) Reviews/;
+            const starsRegex = /(\d+[\.,\d]*) [^\d]+ (\d+[\. ,\d]*) [^\d]+/;
             const rating = starsSection?.match(starsRegex)?.at(1) ?? "0";
             const reviewCount = starsSection?.match(starsRegex)?.at(2) ?? "0";
             const phoneSection = lead.querySelector('.fontBodyMedium')!.textContent;
