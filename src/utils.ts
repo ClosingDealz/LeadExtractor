@@ -91,7 +91,6 @@ export async function exportGoogleMapsLeadsToCRM(apiKey: string, headers: string
 
         const responses: any[] = [];
         for (const leadChunk of chunk(leads, 100)) {
-            console.log(leadChunk);
             const response = await fetch(url, {
                 method: "post",
                 headers: {
