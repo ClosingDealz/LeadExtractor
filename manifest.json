@@ -23,7 +23,11 @@
     "content_scripts": [
       {
         "matches": ["https://app.apollo.io/*"],
-        "js": ["contentScript.js"]
+        "js": ["apolloContentScript.js"]
+      },
+      {
+        "matches": ["https://www.google.com/maps/*"],
+        "js": ["googleMapsContentScript.js"]
       }
     ]
   }

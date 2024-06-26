@@ -7,20 +7,51 @@ export async function getActiveTab(): Promise<chrome.tabs.Tab> {
     return tabs[0];
 }
 
-export function isApolloListUrl(url: string): boolean {
-    if (!url || !url.includes("https://app.apollo.io/#/people"))
-        return false;
+export function isApolloListUrl(url: string): [correctSite: boolean, correctPage: boolean] {
+    if (!url)
+        return [false, false];
+
+    const correctSite = url.includes("https://app.apollo.io");
+    if (!correctSite)
+        return [false, false];
+    
+    if (!url.includes("https://app.apollo.io/#/people"))
+        return [true, false];
 
     const querySplit = url.split("?");
     if (querySplit.length < 2)
-        return false;
+        return [true, false];
 
     const queryParameters = querySplit[1];
     const urlParameters = new URLSearchParams(queryParameters);
     if (!urlParameters.has("contactLabelIds[]"))
-        return false; 
+        return [true, false];
 
-    return true;
+    return [true, true];
+}
+
+export function isGoogleMapsUrl(url: string): [correctSite: boolean, correctPage: boolean] {
+    if (!url)
+        return [false, false];
+    
+    const correctSite = url.includes("https://www.google.com/maps");
+    const correctPage = url.includes("https://www.google.com/maps/search/");
+
+    return [correctSite, correctPage];
+}
+
+export function isCorrectUrl(url: string): {correctSite: boolean, correctPage: boolean, site: "apollo" | "google-maps" | null}  {
+    const [isApolloSite, isApolloCorrectPage] = isApolloListUrl(url);
+    if (isApolloSite) {
+        return {correctSite: true, correctPage: isApolloCorrectPage, site: "apollo"};
+    }
+
+    const [isGoogleMapsSite, isGoogleMapsCorrectPage] = isGoogleMapsUrl(url);
+    if (isGoogleMapsSite) {
+        return {correctSite: true, correctPage: isGoogleMapsCorrectPage, site: "google-maps"};
+    }
+
+    return {correctSite: false, correctPage: false, site: null};
 }
 
 function downloadBlob(blob: Blob, fileName: string) {

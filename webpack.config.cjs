@@ -6,7 +6,8 @@ module.exports = {
   mode: 'production',
   target: 'web',
   entry: {
-    contentScript: './src/content/index.ts',
+    apolloContentScript: './src/content/apollo.ts',
+    googleMapsContentScript: './src/content/googleMaps.ts',
     background: './src/background/index.ts',
     react: './src/react/index.tsx'
   },

@@ -2,18 +2,24 @@ import { useState, useEffect } from "react";
 import { exportLeadsToCRM, downloadCsv, getActiveTab, isApolloListUrl, reloadPage } from "../../utils";
 import "./style.css"
 
+interface ApolloProps {
+    incorrectPage: boolean,
+    tabId: number
+}
+
 type StateTypes =
-    "IncorrectSite"
+    "IncorrectPage"
     | "Loading"
     | "Extract"
     | "Extracting"
     | "Export";
 
-export default function Main(){
+export default function Main(props: ApolloProps){
+    const { incorrectPage, tabId } = props;
     const [leadsCount, setLeadsCount] = useState(0);
     const [maxPages, setMaxPages] = useState(0);
     const [pages, setPages] = useState(0);
-    const [state, setState] = useState<StateTypes>("IncorrectSite");
+    const [state, setState] = useState<StateTypes>("IncorrectPage");
     const [tableHeaders, setTableHeaders] = useState<string[]>([]);
     const [tableData, setTableData] = useState<string[][]>([]);
     const [fileName, setFileName] = useState("");
@@ -59,14 +65,13 @@ export default function Main(){
     // Startup
     useEffect(() => {
         async function run() {
-            const tab = await getActiveTab();
-            if (!isApolloListUrl(tab.url!)) {
-                setState("IncorrectSite");
+            if (incorrectPage) {
+                setState("IncorrectPage");
                 return;
             }
 
             setState("Loading");
-            chrome.tabs.sendMessage(tab.id!, { action: "fetch_lead_info" }, (response) => {
+            chrome.tabs.sendMessage(tabId, { action: "fetch_lead_info" }, (response) => {
                 setLeadsCount(response.leadsCount);
                 setPages(response.remainingPages)
                 setMaxPages(response.remainingPages)
@@ -77,10 +82,10 @@ export default function Main(){
         run();
     }, [])
     
-    function message(): JSX.Element {
-        if (state === "IncorrectSite") {
+    function display(): JSX.Element {
+        if (state === "IncorrectPage") {
             return <>
-                <p style={{textAlign: "center", marginTop: "4rem"}}>Incorrect site. Please visit apollo's lead list page.</p>
+                <p style={{textAlign: "center", marginTop: "4rem"}}>Incorrect page. Please visit apollo's lead list page.</p>
             </>
         } else if (state === "Extract") {
             return <>
@@ -158,13 +163,5 @@ export default function Main(){
         );
     }
 
-    return (
-        <main style={{width: 500, height: 300}}>
-            <header>
-                <h1>Lead Extractor</h1>
-            </header>
-
-            {message()}
-        </main>
-    );
+    return (display());
 }
