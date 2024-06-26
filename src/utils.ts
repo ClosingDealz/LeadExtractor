@@ -82,11 +82,43 @@ export function downloadCsv(fileName: string, headers: string[], rows: string[][
     }
 }
 
-export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: string[][]) {
+export async function exportGoogleMapsLeadsToCRM(apiKey: string, headers: string[], rows: string[][]) {
     const url = "https://app.closingdealz.io/api/v1/leads";
     try {
         const leads: any[] = rows.map((row) => {
-            return mapToClosingDealz(headers, row);
+            return mapGoogleMapsToClosingDealz(headers, row);
+        });
+
+        const responses: any[] = [];
+        for (const leadChunk of chunk(leads, 100)) {
+            console.log(leadChunk);
+            const response = await fetch(url, {
+                method: "post",
+                headers: {
+                    "X-API-Key": apiKey,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(leadChunk)
+            });
+
+            const resData = await response.json();
+            responses.push(resData);
+        }
+        
+        return responses.every(x => x.succeeded === true)
+            ? [true, "Leads successfully added to ClosingDealz CRM"]
+            : [false, "Failed to add leads to ClosingDealz CRM"];
+
+    } catch (error) {
+        return [false, `An error occurred when adding leads to ClosingDealz CRM: ${error}`];
+    }
+}
+
+export async function exportApolloLeadsToCRM(apiKey: string, headers: string[], rows: string[][]) {
+    const url = "https://app.closingdealz.io/api/v1/leads";
+    try {
+        const leads: any[] = rows.map((row) => {
+            return mapApolloToClosingDealz(headers, row);
         });
 
         const responses: any[] = [];
@@ -113,23 +145,16 @@ export async function exportLeadsToCRM(apiKey: string, headers: string[], rows: 
     }
 }
 
-function mapToClosingDealz(headers: string[], data: string[]): any {
-    const lead: any = { labels: ["Apollo"] };
+function mapGoogleMapsToClosingDealz(headers: string[], data: string[]): any {
+    const lead: any = { labels: ["Google Maps"] };
     const unmappedHeaders = [...Array(headers.length).keys()];
 
     // Remap known properties
-    mapProperty("contactPerson", "Name");
-    mapProperty("jobTitle", "Title");
-    mapProperty("email", "Email");
-    mapProperty("company", "Company");
-    mapProperty("phoneNumber", "Phone");
-    mapProperty("address", "Contact Location");
-    mapProperty("employeeCount", "Employees", true);
-    mapProperty("industry", "Industry");
-    mapProperty("website", "Website");
-    mapProperty("linkedIn", "LinkedIn");
-    mapProperty("twitter", "Twitter");
-    mapProperty("facebook", "Facebook");
+    mapProperty(lead, unmappedHeaders, headers, data, "company", "Title");
+    mapProperty(lead, unmappedHeaders, headers, data, "phoneNumber", "Phone");
+    mapProperty(lead, unmappedHeaders, headers, data, "industry", "Industry");
+    mapProperty(lead, unmappedHeaders, headers, data, "address", "Address");
+    mapProperty(lead, unmappedHeaders, headers, data, "website", "Company Url");
 
     // Map rest of the headers to notes
     let notes = "";
@@ -142,23 +167,54 @@ function mapToClosingDealz(headers: string[], data: string[]): any {
     lead["notes"] = notes;
     
     return lead;
+}
 
-    function mapProperty(propertyName: string, columnName: string, toNumber: boolean = false) {
-        const index = headers.indexOf(columnName)
-        if (index === -1)
-            return
+function mapApolloToClosingDealz(headers: string[], data: string[]): any {
+    const lead: any = { labels: ["Apollo"] };
+    const unmappedHeaders = [...Array(headers.length).keys()];
 
-        if (toNumber) {
-            const value = Number(data[index]);
-            lead[propertyName] = value === 0 ? 1 : value;
-        } else {
-            lead[propertyName] = data[index];
-        }
+    // Remap known properties
+    mapProperty(lead, unmappedHeaders, headers, data, "contactPerson", "Name");
+    mapProperty(lead, unmappedHeaders, headers, data, "jobTitle", "Title");
+    mapProperty(lead, unmappedHeaders, headers, data, "email", "Email");
+    mapProperty(lead, unmappedHeaders, headers, data, "company", "Company");
+    mapProperty(lead, unmappedHeaders, headers, data, "phoneNumber", "Phone");
+    mapProperty(lead, unmappedHeaders, headers, data, "address", "Contact Location");
+    mapProperty(lead, unmappedHeaders, headers, data, "employeeCount", "Employees", true);
+    mapProperty(lead, unmappedHeaders, headers, data, "industry", "Industry");
+    mapProperty(lead, unmappedHeaders, headers, data, "website", "Website");
+    mapProperty(lead, unmappedHeaders, headers, data, "linkedIn", "LinkedIn");
+    mapProperty(lead, unmappedHeaders, headers, data, "twitter", "Twitter");
+    mapProperty(lead, unmappedHeaders, headers, data, "facebook", "Facebook");
 
-        const index2 = unmappedHeaders.indexOf(index);
-        unmappedHeaders.splice(index2, 1);
-        
+    // Map rest of the headers to notes
+    let notes = "";
+    unmappedHeaders.forEach(x => {
+        if (data[x] === "")
+            return;
+        notes += headers[x] + "\n";
+        notes += data[x] + "\n\n";
+    });
+    lead["notes"] = notes;
+    
+    return lead;
+}
+
+function mapProperty(lead: any, unmappedHeaders: number[], headers: string[], data: string[], propertyName: string, columnName: string, toNumber: boolean = false) {
+    const index = headers.indexOf(columnName)
+    if (index === -1)
+        return
+
+    if (toNumber) {
+        const value = Number(data[index]);
+        lead[propertyName] = value === 0 ? 1 : value;
+    } else {
+        lead[propertyName] = data[index];
     }
+
+    const index2 = unmappedHeaders.indexOf(index);
+    unmappedHeaders.splice(index2, 1);
+    
 }
 
 function chunk<T>(list: T[], chunkSize: number): T[][] {

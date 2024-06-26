@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { exportLeadsToCRM, downloadCsv, getActiveTab, isApolloListUrl, reloadPage } from "../../utils";
+import { exportApolloLeadsToCRM, downloadCsv, getActiveTab, reloadPage } from "../../utils";
 import "./style.css"
 
 interface ApolloProps {
@@ -35,7 +35,7 @@ export default function Main(props: ApolloProps){
 
     const sendLeadsToCRM = async () => {
         setUploadingLeads(true);
-        const [success, message] = await exportLeadsToCRM(apiKey, tableHeaders, tableData);
+        const [success, message] = await exportApolloLeadsToCRM(apiKey, tableHeaders, tableData);
         setUploadingLeads(false);
 
         if (success)

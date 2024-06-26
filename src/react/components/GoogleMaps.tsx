@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { exportLeadsToCRM, downloadCsv, reloadPage } from "../../utils";
+import { downloadCsv, reloadPage, exportGoogleMapsLeadsToCRM } from "../../utils";
 import "./style.css"
 
 interface GoogleProps {
@@ -32,7 +32,7 @@ export default function Main(props: GoogleProps){
 
     const sendLeadsToCRM = async () => {
         setUploadingLeads(true);
-        const [success, message] = await exportLeadsToCRM(apiKey, tableHeaders, tableData);
+        const [success, message] = await exportGoogleMapsLeadsToCRM(apiKey, tableHeaders, tableData);
         setUploadingLeads(false);
 
         if (success)
