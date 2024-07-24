@@ -39,7 +39,8 @@
             const industryAddressSection = [...lead.querySelectorAll('.fontBodyMedium > div:last-child > div:first-child span > span')].map(x => x.textContent);
             const industry = industryAddressSection[0] ?? "";
             const address = industryAddressSection.at(-1) === industry ? "" : industryAddressSection.at(-1) ?? "";
-            const companyUrl = (lead.querySelector('a[data-value="Website"]') as HTMLLinkElement)?.href ?? "";
+            let companyUrl = (lead.querySelector('a[data-value="Website"]') as HTMLLinkElement)?.href ?? "";
+            companyUrl = companyUrl.substring(0, 256);
             const href = lead.querySelector('a')?.href ?? ""
 
             return [title, rating, reviewCount, phone, industry, address, companyUrl, href];
