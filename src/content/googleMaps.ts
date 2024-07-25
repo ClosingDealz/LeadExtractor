@@ -18,7 +18,7 @@
     }
     
     async function fetchAllTableData(): Promise<{ tableHeaders: string[]; tableData: string[][] }>  {
-        let tableHeaders: string[] = ["Title", "Rating", "Review Count", "Phone", "Industry", "Address", "Company Url", "Google Maps Link"];
+        let tableHeaders: string[] = ["Company", "Rating", "Review Count", "Phone", "Industry", "Address", "Company Url", "Google Maps Link"];
         let tableData: string[][] = [];
     
         const leads = await getLeadElements();
@@ -27,7 +27,7 @@
 
         function maptableData(lead: Element): string[] {
             
-            const title = lead.getElementsByClassName('fontHeadlineSmall')[0].textContent ?? "";
+            const company = lead.getElementsByClassName('fontHeadlineSmall')[0].textContent ?? "";
             const starsSection = lead.querySelector('.fontBodyMedium [role="img"]')?.getAttribute("aria-label");
             const starsRegex = /(\d+[\.,\d]*) [^\d]+ (\d+[\. ,\d]*) [^\d]+/;
             const rating = starsSection?.match(starsRegex)?.at(1) ?? "0";
@@ -39,11 +39,11 @@
             const industryAddressSection = [...lead.querySelectorAll('.fontBodyMedium > div:last-child > div:first-child span > span')].map(x => x.textContent);
             const industry = industryAddressSection[0] ?? "";
             const address = industryAddressSection.at(-1) === industry ? "" : industryAddressSection.at(-1) ?? "";
-            let companyUrl = (lead.querySelector('a[data-value="Website"]') as HTMLLinkElement)?.href ?? "";
-            companyUrl = companyUrl.substring(0, 256);
+            const sideLinks = lead.querySelectorAll(".Rwjeuc div:has(div)");
+            const companyUrl = (sideLinks.length === 1 ? "" : (lead.querySelector('a[data-value="Website"]') as HTMLLinkElement)?.href ?? sideLinks[0].querySelector("a")?.href ?? "").substring(0, 516);
             const href = lead.querySelector('a')?.href ?? ""
 
-            return [title, rating, reviewCount, phone, industry, address, companyUrl, href];
+            return [company, rating, reviewCount, phone, industry, address, companyUrl, href];
         }
     
         return {
